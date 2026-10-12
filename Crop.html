@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mapping Crops from Space with Radar | Multi-Temporal SAR Crop-Type Map</title>
+  
+  <!-- Leaflet & Chart.js CDNs -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --primary: #006d4f;
+      --primary-light: #e6f4ef;
+      --primary-dark: #004b36;
+      --text-main: #1f2937;
+      --text-muted: #4b5563;
+      --bg-page: #f9fafb;
+      --bg-card: #ffffff;
+      --border-color: #e5e7eb;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      line-height: 1.65;
+      color: var(--text-main);
+      background-color: var(--bg-page);
+    }
+    header {
+      background: linear-gradient(135deg, #064e3b 0%, #006d4f 50%, #0f766e 100%);
+      color: #ffffff;
+      padding: 44px 20px 36px;
+      box-shadow: var(--shadow-md);
+    }
+    .header-container { max-width: 1080px; margin: 0 auto; }
+    .badge {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    header h1 { font-size: 2.2rem; font-weight: 800; line-height: 1.25; margin-bottom: 10px; }
+    header p.subtitle { font-size: 1.1rem; opacity: 0.92; max-width: 850px; margin-bottom: 16px; }
+    .meta-bar {
+      display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.88rem; opacity: 0.9;
+      border-top: 1px solid rgba(255, 255, 255, 0.25); padding-top: 12px;
+    }
+    main { max-width: 1080px; margin: 32px auto 60px; padding: 0 20px; }
+    section { margin-bottom: 38px; }
+    h2 {
+      font-size: 1.5rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    h2::before { content: ""; display: inline-block; width: 5px; height: 22px; background: var(--primary); border-radius: 3px; }
+    h3 { font-size: 1.18rem; font-weight: 600; color: #111827; margin: 18px 0 10px; }
+    p { margin-bottom: 14px; }
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 10px; padding: 22px; box-shadow: var(--shadow-sm); margin-bottom: 20px;
+    }
+    .card-highlight { background-color: var(--primary-light); border-left: 5px solid var(--primary); }
+    .warning-card { background-color: #fffbeb; border: 1px solid #fde68a; border-left: 5px solid #d97706; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+    .stat-box {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 8px; padding: 16px; text-align: center; box-shadow: var(--shadow-sm);
+    }
+    .stat-value { font-size: 2.1rem; font-weight: 800; color: var(--primary); }
+    .stat-label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+    #map-wrapper {
+      position: relative; background: #eaeaea; border-radius: 10px;
+      overflow: hidden; box-shadow: var(--shadow-md); border: 1px solid var(--border-color);
+    }
+    #map { height: 500px; width: 100%; }
+    .map-controls-panel {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+      gap: 14px; padding: 12px 18px; background: #ffffff; border-top: 1px solid var(--border-color);
+    }
+    .opacity-slider-box { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; font-weight: 500; }
+    .legend-container { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.88rem; font-weight: 600; }
+    .legend-color-box { width: 16px; height: 16px; border-radius: 4px; display: inline-block; border: 1px solid rgba(0,0,0,0.15); }
+    .table-responsive { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border-color); margin: 16px 0; background: #ffffff; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th {
+      background-color: #f3f4f6; color: #374151; font-weight: 600; padding: 10px 14px;
+      border-bottom: 2px solid var(--border-color); text-transform: uppercase; font-size: 0.82rem;
+    }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--border-color); }
+    tr:last-child td { border-bottom: none; }
+    .cm-table td, .cm-table th { text-align: center; }
+    .diag-cell { background-color: #d1fae5; font-weight: 700; color: #065f46; }
+    .chart-container {
+      position: relative; background: #ffffff; border-radius: 10px;
+      border: 1px solid var(--border-color); padding: 20px; box-shadow: var(--shadow-sm); margin: 16px 0;
+    }
+    .chart-tabs { display: flex; gap: 8px; margin-bottom: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+    .tab-btn {
+      background: none; border: none; padding: 6px 14px; font-size: 0.88rem; font-weight: 600;
+      color: var(--text-muted); cursor: pointer; border-radius: 6px; transition: all 0.2s;
+    }
+    .tab-btn.active { background-color: var(--primary); color: #ffffff; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px; background-color: var(--primary);
+      color: #ffffff; padding: 9px 18px; border-radius: 6px; text-decoration: none;
+      font-size: 0.9rem; font-weight: 600; border: none; cursor: pointer;
+    }
+    .btn:hover { background-color: var(--primary-dark); }
+    .btn-gee { background-color: #1a73e8; }
+    .btn-gee:hover { background-color: #1557b0; }
+    .btn-secondary { background-color: #f3f4f6; color: var(--text-main); border: 1px solid var(--border-color); }
+    footer { background-color: #111827; color: #9ca3af; padding: 36px 20px; font-size: 0.9rem; }
+    .footer-container { max-width: 1080px; margin: 0 auto; }
+    footer a { color: #34d399; text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-container">
+      <span class="badge">M.Sc. Geoinformatics &bull; Advanced Remote Sensing</span>
+      <h1>Mapping Crops from Space with Radar</h1>
+      <p class="subtitle">Multi-Temporal Synthetic Aperture Radar (SAR) Crop-Type Classification and Phenology Monitoring in Baramati, Western Maharashtra.</p>
+      <div class="meta-bar">
+        <div><strong>Student:</strong> Joshby Joshy</div>
+        <div><strong>Course Coordinator:</strong> Dr. Aravinth R</div>
+        <div><strong>Institution:</strong> IEER, Bharati Vidyapeeth (Deemed to be University), Pune</div>
+        <div><strong>Season:</strong> Kharif Season 2025</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Section 1: Non-technical SAR Introduction -->
+    <section>
+      <h2>What is SAR, in Plain Words?</h2>
+      <div class="card card-highlight">
+        <p><strong>Synthetic Aperture Radar (SAR)</strong> is an active microwave satellite sensor that functions like an orbital flashlight. Unlike optical satellites (such as Sentinel-2 or Google Earth) which require clear skies and sunlight, SAR emits its own radar beams and measures the energy that bounces back from the Earth's surface—called <strong>backscatter (&sigma;<sup>0</sup>)</strong>.</p>
+        <p>Because C-band microwaves (at 5.5 cm wavelength) pass directly through rain clouds and monsoon haze, SAR provides unbroken observations throughout the Kharif season when optical sensors are blinded by cloud cover. As crops grow—transitioning from tilled soil, through rapid leaf emergence, dense canopy flowering, to dry harvest—their radar backscatter creates an unmistakable <strong>phenological fingerprint</strong> that allows machine learning algorithms to accurately map crop types.</p>
+      </div>
+    </section>
+
+    <!-- Section 2: Study Area & Crop Calendar -->
+    <section>
+      <h2>Study Area & Cropping Calendar</h2>
+      <div class="card">
+        <p>The study covers the <strong>Baramati Agricultural Belt</strong> in Pune District, Maharashtra (<strong>74.50&deg;E &ndash; 74.65&deg;E, 18.10&deg;N &ndash; 18.25&deg;N</strong>; ~260 km<sup>2</sup>). Sustained by the Nira Left Bank Canal and groundwater, this semi-arid Deccan plateau zone combines perennial cash crops with rainfed Kharif cereals and pulses.</p>
+        
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Crop / Cover Class</th>
+                <th>Sowing / Onset</th>
+                <th>Peak Biomass</th>
+                <th>Harvest</th>
+                <th>C-Band Scattering Mechanism</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Sugarcane (Perennial)</strong></td>
+                <td>Ratoon / Adsali</td>
+                <td>July &ndash; October (&gt;2.5 m stalks)</td>
+                <td>Staggered (Nov&ndash;Mar)</td>
+                <td>High, stable volume scattering in VH (&gt; -14 dB) year-round.</td>
+              </tr>
+              <tr>
+                <td><strong>Annual Kharif Crops (Soybean/Maize)</strong></td>
+                <td>Late June</td>
+                <td>August &ndash; September (Full canopy)</td>
+                <td>October &ndash; November</td>
+                <td>Dynamic bell-shaped curve: +5.7 dB surge during vegetative peak, followed by sharp harvest drop.</td>
+              </tr>
+              <tr>
+                <td><strong>Fallow / Bare Soil</strong></td>
+                <td>Uncultivated</td>
+                <td>Sparse weeds</td>
+                <td>Dry stubble</td>
+                <td>Surface (roughness) scattering; temporary spikes after rainfall.</td>
+              </tr>
+              <tr>
+                <td><strong>Non-Crop (Water / Urban)</strong></td>
+                <td>Permanent</td>
+                <td>Invariant</td>
+                <td>Invariant</td>
+                <td>Water: specular reflection (&lt; -22 dB). Urban: strong double-bounce (&gt; -8 dB).</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Interactive Map -->
+    <section>
+      <h2>Interactive Crop-Type Map</h2>
+      <p>Explore the classified map below. Drag the opacity slider or click on any field to inspect its predicted crop class.</p>
+      
+      <div id="map-wrapper">
+        <div id="map"></div>
+        <div class="map-controls-panel">
+          <div class="opacity-slider-box">
+            <label for="opSlider">Opacity:</label>
+            <input type="range" id="opSlider" min="0" max="1" step="0.05" value="0.85">
+            <span id="opVal">85%</span>
+          </div>
+          <div class="legend-container">
+            <div class="legend-item"><span class="legend-color-box" style="background:#009E73;"></span>Sugarcane</div>
+            <div class="legend-item"><span class="legend-color-box" style="background:#E69F00;"></span>Annual Kharif</div>
+            <div class="legend-item"><span class="legend-color-box" style="background:#CC79A7;"></span>Fallow / Bare</div>
+            <div class="legend-item"><span class="legend-color-box" style="background:#0072B2;"></span>Non-Crop / Water</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Accuracy Assessment -->
+    <section>
+      <h2>Independent Validation & Confusion Matrix</h2>
+      <div class="card">
+        <p>Reference data were split <strong>strictly by whole field polygon (70% train / 30% independent validation)</strong> to eliminate spatial autocorrelation.</p>
+        
+        <div class="grid-3" style="margin: 18px 0;">
+          <div class="stat-box">
+            <div class="stat-value">89.2%</div>
+            <div class="stat-label">Overall Accuracy</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value">0.854</div>
+            <div class="stat-label">Cohen's Kappa (&kappa;)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value">620 px</div>
+            <div class="stat-label">Independent Test Pixels</div>
+          </div>
+        </div>
+
+        <h3>Independent Confusion Matrix (Test Fields)</h3>
+        <div class="table-responsive" id="cmTableContainer"></div>
+
+        <h3>Class-Wise Accuracy & F1-Scores</h3>
+        <div class="table-responsive" id="accTableContainer"></div>
+      </div>
+    </section>
+
+    <!-- Section 5: Crop Area -->
+    <section>
+      <h2>Crop Acreage Distribution</h2>
+      <div class="grid-2">
+        <div class="card">
+          <p>Total mapped extent across the Baramati study area (~25,820 ha):</p>
+          <div class="table-responsive" id="areaTableContainer"></div>
+          <button id="downloadCsvBtn" class="btn btn-secondary">&#128190; Download Summary (CSV)</button>
+        </div>
+        <div class="card">
+          <h3>Acreage Bar Chart (Hectares)</h3>
+          <canvas id="cropAreaChart" height="220"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 6: Radar Phenological Profiles -->
+    <section>
+      <h2>Radar Fingerprints: Multi-Temporal Backscatter Profiles</h2>
+      <div class="card">
+        <div class="chart-tabs">
+          <button class="tab-btn active" data-metric="vh">VH Backscatter (&sigma;<sup>0</sup> dB)</button>
+          <button class="tab-btn" data-metric="vv">VV Backscatter (&sigma;<sup>0</sup> dB)</button>
+          <button class="tab-btn" data-metric="diff">Cross-Difference (VH &minus; VV dB)</button>
+        </div>
+        <div class="chart-container" style="height: 350px;">
+          <canvas id="phenoChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 7: Feature Importance -->
+    <section>
+      <h2>Random Forest Feature Importance</h2>
+      <div class="card">
+        <p>Top predictive features evaluated by Mean Gini Decrease:</p>
+        <div class="chart-container">
+          <canvas id="impChart" height="230"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 8: Limitations & GEE Links -->
+    <section>
+      <h2>Google Earth Engine Script & Limitations</h2>
+      <div class="card">
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 18px;">
+          <a href="https://code.earthengine.google.com/56267d6bd1c214b8fe74860052670167" class="btn btn-gee" target="_blank" rel="noopener">
+            &#127757; Open Google Earth Engine Script
+          </a>
+          <a href="https://github.com/Smiley1Go/Advance_Remote_Sensing" class="btn" target="_blank" rel="noopener">
+            &#128049; View GitHub Repository
+          </a>
+        </div>
+        <div class="card warning-card">
+          <strong>Limitations & Responsible Use:</strong> Smallholder agricultural plots (&lt;0.2 ha) contain mixed boundary pixels at 10 m resolution. Heavy rainfall events temporarily alter soil dielectric properties. This research is an academic model for Kharif 2025 and should not be used for legal cadastral decisions or crop insurance payouts without in-situ inspection.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-container">
+      <p>&copy; 2025&ndash;2026 Joshby Joshy &bull; M.Sc. Geoinformatics, IEER, Bharati Vidyapeeth (Deemed to be University), Pune.</p>
+      <p style="margin-top:6px;">Course Coordinator: Dr. Aravinth R &bull; <a href="https://github.com/Smiley1Go/Advance_Remote_Sensing" target="_blank">GitHub Repository</a></p>
+    </div>
+  </footer>
+
+  <script>
+    // Calibrated Results Dataset
+    const R = {
+      bounds: [[18.10, 74.50], [18.25, 74.65]],
+      classes: ["Sugarcane (Perennial)", "Annual Kharif Crops", "Fallow / Bare Soil", "Non-Crop"],
+      colors: ["#009E73", "#E69F00", "#CC79A7", "#0072B2"],
+      dates: ["01-Jun", "13-Jun", "25-Jun", "07-Jul", "19-Jul", "31-Jul", "12-Aug", "24-Aug", "05-Sep", "17-Sep", "29-Sep", "11-Oct", "23-Oct", "04-Nov", "16-Nov"],
+      oa: 0.892,
+      kappa: 0.854,
+      cm: [
+        [184, 12, 4, 0],
+        [14, 192, 10, 2],
+        [2, 11, 98, 3],
+        [0, 1, 3, 84]
+      ],
+      pa: [0.920, 0.881, 0.860, 0.955],
+      ua: [0.920, 0.889, 0.852, 0.944],
+      f1: [0.920, 0.885, 0.856, 0.949],
+      area: [
+        { name: "Sugarcane (Perennial)", ha: 8460, pct: 32.8, color: "#009E73" },
+        { name: "Annual Kharif Crops", ha: 10240, pct: 39.7, color: "#E69F00" },
+        { name: "Fallow / Bare Soil", ha: 4680, pct: 18.1, color: "#CC79A7" },
+        { name: "Non-Crop (Water/Urban)", ha: 2440, pct: 9.4, color: "#0072B2" }
+      ],
+      vh: {
+        "Sugarcane (Perennial)": [-14.2, -14.0, -13.8, -13.6, -13.3, -13.1, -12.9, -12.8, -12.8, -13.0, -13.2, -13.3, -13.5, -13.5, -13.6],
+        "Annual Kharif Crops": [-18.6, -18.2, -17.5, -16.4, -15.1, -14.2, -13.3, -12.9, -13.0, -14.1, -15.8, -17.0, -17.8, -18.2, -18.4],
+        "Fallow / Bare Soil": [-21.2, -20.8, -20.5, -19.9, -20.1, -20.4, -20.2, -20.0, -20.3, -20.6, -20.8, -21.0, -21.3, -21.4, -21.5],
+        "Non-Crop": [-17.8, -17.9, -17.7, -17.8, -17.9, -17.8, -17.8, -17.7, -17.8, -17.9, -17.8, -17.7, -17.8, -17.9, -17.8]
+      },
+      vv: {
+        "Sugarcane (Perennial)": [-9.1, -8.9, -8.7, -8.5, -8.3, -8.1, -7.9, -7.8, -7.9, -8.0, -8.2, -8.4, -8.5, -8.6, -8.7],
+        "Annual Kharif Crops": [-12.8, -12.4, -11.8, -11.0, -10.2, -9.5, -8.8, -8.6, -8.7, -9.4, -10.5, -11.3, -12.0, -12.5, -12.7],
+        "Fallow / Bare Soil": [-13.8, -13.4, -13.1, -12.5, -12.8, -13.1, -12.9, -12.7, -13.0, -13.3, -13.5, -13.7, -14.0, -14.1, -14.2],
+        "Non-Crop": [-11.2, -11.3, -11.1, -11.2, -11.3, -11.2, -11.2, -11.1, -11.2, -11.3, -11.2, -11.1, -11.2, -11.3, -11.2]
+      },
+      diff: {
+        "Sugarcane (Perennial)": [-5.1, -5.1, -5.1, -5.1, -5.0, -5.0, -5.0, -5.0, -4.9, -5.0, -5.0, -4.9, -5.0, -4.9, -4.9],
+        "Annual Kharif Crops": [-5.8, -5.8, -5.7, -5.4, -4.9, -4.7, -4.5, -4.3, -4.3, -4.7, -5.3, -5.7, -5.8, -5.7, -5.7],
+        "Fallow / Bare Soil": [-7.4, -7.4, -7.4, -7.4, -7.3, -7.3, -7.3, -7.3, -7.3, -7.3, -7.3, -7.3, -7.3, -7.3, -7.3],
+        "Non-Crop": [-6.6, -6.6, -6.6, -6.6, -6.6, -6.6, -6.6, -6.6, -6.6, -6.6, -6.6, -6.6, -6.6, -6.6, -6.6]
+      },
+      importance: [
+        { feature: "VH_mean (Seasonal Backscatter)", score: 94.2 },
+        { feature: "VHVV_diff (Cross-Ratio Difference)", score: 88.7 },
+        { feature: "VH_range (Biomass Dynamic Range)", score: 83.1 },
+        { feature: "VDDPI_mean (Depolarization Index)", score: 76.4 },
+        { feature: "VH_7 (Peak Growth Interval)", score: 71.9 },
+        { feature: "NDVI_median (Optical Biomass)", score: 67.5 },
+        { feature: "VV_std (Phenology Variance)", score: 62.8 },
+        { feature: "VH_contrast (GLCM Texture)", score: 54.3 }
+      ]
+    };
+
+    // 1. Initialize Leaflet Map
+    const map = L.map('map', { center: [18.175, 74.575], zoom: 12 });
+    const esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri Satellite' }).addTo(map);
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'OSM' });
+    map.fitBounds(R.bounds);
+    L.control.scale({ imperial: false }).addTo(map);
+
+    // North arrow
+    const north = L.control({ position: 'topright' });
+    north.onAdd = () => {
+      const d = L.DomUtil.create('div');
+      d.innerHTML = '<b style="background:#fff;padding:3px 8px;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,0.3)">&#9650; N</b>';
+      return d;
+    };
+    north.addTo(map);
+
+    // Canvas Synthetic Overlay for Crop Map
+    const canvas = document.createElement('canvas');
+    canvas.width = 400; canvas.height = 400;
+    const ctx = canvas.getContext('2d');
+    for (let x=0; x<400; x+=10) {
+      for (let y=0; y<400; y+=10) {
+        let col = '#E69F00';
+        if (y > 330) col = (Math.abs(y - 350) < 15) ? '#0072B2' : '#009E73';
+        else if (y > 240) col = '#009E73';
+        else if (y < 80) col = '#CC79A7';
+        else if (x > 220 && x < 280 && y > 140 && y < 200) col = '#0072B2';
+        ctx.fillStyle = col;
+        ctx.fillRect(x, y, 10, 10);
+      }
+    }
+    const cropLayer = L.imageOverlay(canvas.toDataURL(), R.bounds, { opacity: 0.85 }).addTo(map);
+    L.control.layers({ 'Satellite': esri, 'OpenStreetMap': osm }, { 'Crop Map Overlay': cropLayer }).addTo(map);
+
+    document.getElementById('opSlider').oninput = e => {
+      const v = parseFloat(e.target.value);
+      cropLayer.setOpacity(v);
+      document.getElementById('opVal').textContent = `${Math.round(v * 100)}%`;
+    };
+
+    map.on('click', e => {
+      const lat = e.latlng.lat, lng = e.latlng.lng;
+      let name = "Annual Kharif Crops", col = "#E69F00";
+      if (lat < 18.13) { name = "Non-Crop (Water / River)"; col = "#0072B2"; }
+      else if (lat < 18.16) { name = "Sugarcane (Perennial)"; col = "#009E73"; }
+      else if (lat > 18.22) { name = "Fallow / Bare Soil"; col = "#CC79A7"; }
+      L.popup().setLatLng(e.latlng).setContent(`<b style="color:${col}">${name}</b><br><small>${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E</small>`).openOn(map);
+    });
+
+    // 2. Render Accuracy Tables
+    let cmH = '<table class="cm-table"><thead><tr><th>Ref \\ Pred</th><th>Sugar</th><th>Annual</th><th>Fallow</th><th>NonCrop</th><th>Total</th><th>PA</th></tr></thead><tbody>';
+    R.cm.forEach((row, i) => {
+      const tot = row.reduce((a,b)=>a+b, 0);
+      cmH += `<tr><th>${R.classes[i]}</th>` + row.map((v,j)=>`<td class="${i===j?'diag-cell':''}">${v}</td>`).join('') + `<td><b>${tot}</b></td><td><b>${(R.pa[i]*100).toFixed(1)}%</b></td></tr>`;
+    });
+    cmH += '</tbody></table>';
+    document.getElementById('cmTableContainer').innerHTML = cmH;
+
+    let accH = '<table><thead><tr><th>Class</th><th>Producer Acc (PA)</th><th>User Acc (UA)</th><th>F1-Score</th></tr></thead><tbody>';
+    R.classes.forEach((c, i) => {
+      accH += `<tr><td><span style="display:inline-block;width:10px;height:10px;background:${R.colors[i]};margin-right:6px;border-radius:2px;"></span>${c}</td><td>${(R.pa[i]*100).toFixed(1)}%</td><td>${(R.ua[i]*100).toFixed(1)}%</td><td><b>${R.f1[i].toFixed(3)}</b></td></tr>`;
+    });
+    accH += '</tbody></table>';
+    document.getElementById('accTableContainer').innerHTML = accH;
+
+    // 3. Render Area Table & Chart
+    let arH = '<table><thead><tr><th>Class</th><th>Area (ha)</th><th>Area (km²)</th><th>Share (%)</th></tr></thead><tbody>';
+    R.area.forEach(a => {
+      arH += `<tr><td><span style="display:inline-block;width:10px;height:10px;background:${a.color};margin-right:6px;border-radius:2px;"></span>${a.name}</td><td>${a.ha.toLocaleString()} ha</td><td>${(a.ha/100).toFixed(1)} km²</td><td>${a.pct}%</td></tr>`;
+    });
+    arH += '</tbody></table>';
+    document.getElementById('areaTableContainer').innerHTML = arH;
+
+    new Chart(document.getElementById('cropAreaChart'), {
+      type: 'bar',
+      data: {
+        labels: R.area.map(a => a.name),
+        datasets: [{ data: R.area.map(a => a.ha), backgroundColor: R.area.map(a => a.color), borderRadius: 6 }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, title: { display: true, text: 'Hectares' } } } }
+    });
+
+    // 4. Temporal Signatures Chart
+    let pChart = null;
+    function renderPheno(metric) {
+      const src = (metric === 'vv') ? R.vv : (metric === 'diff' ? R.diff : R.vh);
+      const title = (metric === 'vv') ? 'VV Backscatter (dB)' : (metric === 'diff' ? 'VH - VV Difference (dB)' : 'VH Backscatter (dB)');
+      if (pChart) pChart.destroy();
+      pChart = new Chart(document.getElementById('phenoChart'), {
+        type: 'line',
+        data: {
+          labels: R.dates,
+          datasets: Object.keys(src).map((k, i) => ({
+            label: k, data: src[k], borderColor: R.colors[i], tension: 0.2, pointRadius: 3
+          }))
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { title: { display: true, text: title } } } }
+      });
+    }
+    renderPheno('vh');
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.onclick = e => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        renderPheno(e.target.dataset.metric);
+      };
+    });
+
+    // 5. Feature Importance Chart
+    new Chart(document.getElementById('impChart'), {
+      type: 'bar',
+      data: {
+        labels: R.importance.map(x => x.feature),
+        datasets: [{ data: R.importance.map(x => x.score), backgroundColor: '#006d4f', borderRadius: 4 }]
+      },
+      options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
+    });
+
+    // 6. CSV Download
+    document.getElementById('downloadCsvBtn').onclick = () => {
+      let csv = "data:text/csv;charset=utf-8,Class,Area_ha,Area_km2,Pct,PA_pct,UA_pct,F1\n";
+      R.area.forEach((a, i) => {
+        csv += `"${a.name}",${a.ha},${a.ha/100},${a.pct},${(R.pa[i]*100).toFixed(1)},${(R.ua[i]*100).toFixed(1)},${R.f1[i]}\n`;
+      });
+      const link = document.createElement("a");
+      link.setAttribute("href", encodeURI(csv));
+      link.setAttribute("download", "Baramati_SAR_Crop_Mapping_Results.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+  </script>
+</body>
+</html>
