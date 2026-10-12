@@ -2,16 +2,6 @@
 
 [![Google Earth Engine](https://img.shields.io/badge/Google%20Earth%20Engine-Complete%20Script-blue?style=for-the-badge&logo=google-earth)](https://code.earthengine.google.com/56267d6bd1c214b8fe74860052670167)
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live%20Web%20App-success?style=for-the-badge&logo=github)](https://smiley1go.github.io/Advance_Remote_Sensing/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-
-**Programme:** M.Sc. Geoinformatics  
-**Subject:** Advanced Remote Sensing  
-**Institution:** Institute of Environment Education and Research, Bharati Vidyapeeth (Deemed to be University), Pune  
-**Course Coordinator:** Dr. Aravinth R  
-**Student:** Joshby Joshy ([@Smiley1Go](https://github.com/Smiley1Go))  
-**Academic Year:** 2025–2026  
-
----
 
 ## 🔗 Project Links
 
