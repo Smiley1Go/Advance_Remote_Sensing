@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Temporal SAR-Based Crop-Type Mapping | Sehore District</title>
+    <style>
+        :root {
+            --primary: #1b4332;
+            --secondary: #2d6a4f;
+            --accent-wheat: #E69F00;
+            --accent-soybean: #0072B2;
+            --light-bg: #f8f9fa;
+            --text-dark: #212529;
+            --border-color: #dee2e6;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-dark);
+            background-color: var(--light-bg);
+            line-height: 1.6;
+        }
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 2.5rem 1rem;
+            text-align: center;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+        }
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        h2 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+        p {
+            margin-bottom: 1rem;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+        .map-container {
+            width: 100%;
+            height: 600px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            overflow: hidden;
+            background: #e9ecef;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #f1f3f5;
+            color: var(--primary);
+        }
+        .legend-box {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            vertical-align: middle;
+            border-radius: 3px;
+        }
+        .wheat-bg { background-color: var(--accent-wheat); }
+        .soybean-bg { background-color: var(--accent-soybean); }
+        .btn-link {
+            display: inline-block;
+            background-color: var(--secondary);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 0.5rem;
+            transition: background 0.2s;
+        }
+        .btn-link:hover {
+            background-color: var(--primary);
+        }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Multi-Temporal SAR-Based Crop-Type Mapping</h1>
+        <p>Sehore District, Madhya Pradesh | M.Sc. Geoinformatics Assignment</p>
+    </header>
+
+    <div class="container">
+        
+        <!-- Project Overview -->
+        <section>
+            <h2>Project Overview & Methodology</h2>
+            <p>This web application presents a multi-temporal crop classification workflow developed for the <strong>Sehore District</strong> spanning the Kharif and Rabi agricultural seasons (June 2025 – April 2026). Using Sentinel-1 Ground Range Detected (GRD) synthetic aperture radar (SAR) data in descending orbit (VV and VH polarizations), time-series backscatter trajectories were captured across 12-day composite intervals.</p>
+            <p>A total of <strong>82 predictor bands</strong>—including gap-filled temporal windows, polarization differences, and seasonal statistics (mean and standard deviation)—were extracted using field reference polygons buffered to align with the 10-meter pixel grid. A supervised <strong>Random Forest classifier (100 trees)</strong> was trained to distinguish between Wheat and Soybean phenological cycles.</p>
+            <a href="https://code.earthengine.google.com/391ed4568e784d77da65058ce3fa7869" target="_blank" class="btn-link">View GEE Script Source Code</a>
+        </section>
+
+        <!-- Interactive Map Section -->
+        <section>
+            <h2>Interactive Crop Classification Map</h2>
+            <p>Explore the live classified map rendered directly from Google Earth Engine. 
+               <br><span class="legend-box wheat-bg"></span><strong>Wheat (Orange)</strong> | 
+               <span class="legend-box soybean-bg"></span><strong>Soybean (Blue)</strong>
+            </p>
+            <div class="map-container">
+                <!-- Embedded Google Earth Engine App -->
+                <iframe src="https://degrasskob.projects.earthengine.app/view/cropdata" title="Sehore Crop Classification Map"></iframe>
+            </div>
+        </section>
+
+        <!-- Results & Validation Section -->
+        <section>
+            <h2>Model Results & Accuracy Assessment</h2>
+            <div class="grid-2">
+                <div>
+                    <h3>Sample & Feature Summary</h3>
+                    <ul style="list-style-type: none; padding-left: 0; margin-top: 1rem;">
+                        <li>🌾 <strong>Wheat Training Polygons / Pixels:</strong> 115 polygons / 240 pixels</li>
+                        <li>🌱 <strong>Soybean Training Polygons / Pixels:</strong> 113 polygons / 106 pixels</li>
+                        <li>📊 <strong>Total Predictor Features:</strong> 82 bands</li>
+                        <li>⚙️ <strong>Classifier:</strong> Random Forest ($n=100$ trees)</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>Performance Metrics</h3>
+                    <ul style="list-style-type: none; padding-left: 0; margin-top: 1rem;">
+                        <li>🎯 <strong>Overall Accuracy:</strong> 68.42% ($0.684$)</li>
+                        <li>🔍 <strong>Producer's Accuracy (Recall):</strong> Wheat [1.00], Soybean [0.00]</li>
+                        <li>📐 <strong>User's Accuracy (Precision):</strong> Wheat [0.684], Soybean [0.00]</li>
+                        <li>⭐ <strong>F1-Score:</strong> Wheat [0.813], Soybean [NaN]</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 2rem;">Confusion Matrix (Rows = Reference, Cols = Predicted)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Reference \ Predicted</th>
+                        <th>Wheat (0)</th>
+                        <th>Soybean (1)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Wheat (0)</strong></td>
+                        <td>13</td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Soybean (1)</strong></td>
+                        <td>6</td>
+                        <td>0</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+    </div>
+
+    <footer>
+        <p>Developed by Joshby Joshy | M.Sc. Geoinformatics (Second Year) | Bharati Vidyapeeth (DU) Institute of Environment Education and Research, Pune</p>
+    </footer>
+
+</body>
+</html>
