@@ -5,7 +5,8 @@ This repository hosts the Google Earth Engine (GEE) code and documentation for m
 
 ## Live Access Links
 * **Google Earth Engine Code Script:** [View Source Code in GEE](https://code.earthengine.google.com/391ed4568e784d77da65058ce3fa7869)
-*  **Webpage:** [Crop Detection](https://smiley1go.github.io/Advance_Remote_Sensing/)
+* **Interactive GEE App:** [Open Crop Map](https://degrasskob.projects.earthengine.app/view/crop)
+* **Webpage:** [Crop Detection](https://smiley1go.github.io/Advance_Remote_Sensing/)
 
 ## Methodology & Workflow
 1. **Data Acquisition:** Filtered Sentinel-1 GRD IW mode scenes over the Sehore district boundary (June 2025 – April 2026).
